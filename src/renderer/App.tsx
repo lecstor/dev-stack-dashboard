@@ -1,6 +1,14 @@
-import { hot } from "react-hot-loader";
 import React, { FC } from "react";
 
-const App: FC = () => <div>Hi from react!</div>;
+import { Box } from "@chakra-ui/core";
 
-export default hot(module)(App);
+import TitleBar from "./TitleBar";
+
+const Root: FC = () => (
+  <div>
+    <TitleBar />
+    <Box p={4}> Hi from Electron, React, and Chakra-UI!</Box>
+  </div>
+);
+
+export default Root;
