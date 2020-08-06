@@ -77,6 +77,9 @@
     "@electron-forge/maker-zip": "6.0.0-beta.52",
     "@electron-forge/plugin-webpack": "6.0.0-beta.52",
     "@marshallofsound/webpack-asset-relocator-loader": "^0.5.0",
+    "@types/js-yaml": "^3.12.5",
+    "@types/react": "^16.9.44",
+    "@types/react-dom": "^16.9.8",
     "@typescript-eslint/eslint-plugin": "^3.6.1",
     "@typescript-eslint/parser": "^3.6.1",
     "css-loader": "^4.2.0",
@@ -96,12 +99,14 @@
   "dependencies": {
     "@chakra-ui/core": "^1.0.0-rc.0",
     "@chakra-ui/theme": "^1.0.0-rc.0",
-    "@types/react": "^16.9.43",
-    "@types/react-dom": "^16.9.8",
     "electron-squirrel-startup": "^1.0.0",
+    "home-or-tmp": "^3.0.0",
+    "js-yaml": "^3.14.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-hot-loader": "^4.12.21"
+    "react-hot-loader": "^4.12.21",
+    "react-icons": "^3.10.0",
+    "simple-git": "^2.17.0"
   },
   "optionalDependencies": {
     "macos-alias": "^0.2.11"

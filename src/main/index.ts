@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu } from "electron";
 
 import { menuTemplate } from "./os-menu-template";
+import { initHandlers } from "./ipcHandlers";
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 
@@ -19,6 +20,8 @@ const createWindow = (): void => {
       nodeIntegration: true,
     },
   });
+
+  initHandlers(mainWindow);
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
