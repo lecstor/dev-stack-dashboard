@@ -27,7 +27,6 @@ export async function readDir(
   path: PathLike,
   options?: { directoriesOnly?: boolean; filesOnly?: boolean }
 ): Promise<Dirent[]> {
-  console.log("readDirWrapper", path, options);
   const files = await fs.readdir(path, { withFileTypes: true });
   if (options?.directoriesOnly) {
     return files.filter((f) => f.isDirectory());

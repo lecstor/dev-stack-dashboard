@@ -3,7 +3,7 @@ import { Dirent } from "fs";
 
 import { FilePath } from "../main/file";
 
-import { DirMeta } from "../main/ipcHandlers";
+import { DirMeta, RepoDetailMeta, RepoMeta } from "../main/ipcHandlers";
 
 const { ipcRenderer } = window.require("electron");
 
@@ -16,6 +16,14 @@ export function readDir(
 
 export function readDockerDir(path: FilePath): Promise<DirMeta[]> {
   return ipcRenderer.invoke("read-docker-dir", path);
+}
+
+export function readRepoList(path: FilePath): Promise<RepoMeta[]> {
+  return ipcRenderer.invoke("read-repo-list", path);
+}
+
+export function readRepo(path: FilePath): Promise<RepoDetailMeta> {
+  return ipcRenderer.invoke("read-repo", path);
 }
 
 // export function ipcOn(

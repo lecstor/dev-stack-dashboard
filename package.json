@@ -99,6 +99,8 @@
   "dependencies": {
     "@chakra-ui/core": "^1.0.0-rc.0",
     "@chakra-ui/theme": "^1.0.0-rc.0",
+    "@xstate/react": "^0.8.1",
+    "date-fns": "^2.15.0",
     "electron-squirrel-startup": "^1.0.0",
     "home-or-tmp": "^3.0.0",
     "js-yaml": "^3.14.0",
@@ -106,7 +108,8 @@
     "react-dom": "^16.13.1",
     "react-hot-loader": "^4.12.21",
     "react-icons": "^3.10.0",
-    "simple-git": "^2.17.0"
+    "simple-git": "^2.17.0",
+    "xstate": "^4.11.0"
   },
   "optionalDependencies": {
     "macos-alias": "^0.2.11"
