@@ -12,7 +12,7 @@ export default function getSinceLastFetch(
   ["years", "months", "weeks", "days", "hours", "minutes", "seconds"].forEach(
     (p) => {
       if (!sinceLastFetch && duration[p as keyof Duration]) {
-        sinceLastFetch = `> ${duration[p as keyof Duration]} ${p}`;
+        sinceLastFetch = `${duration[p as keyof Duration]} ${p}`;
       }
     }
   );
