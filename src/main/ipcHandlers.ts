@@ -133,7 +133,7 @@ async function readRepoList(_event: InvokeEvent, path: PathLike) {
     })
   );
   const filtered = dirsMeta.filter(
-    (m) => m.hasDockerCompose && m.hasDockerfile
+    (m) => m.isGitRepo && (m.hasDockerCompose || m.hasDockerfile)
   );
   // console.log(JSON.stringify({ filtered }, null, 2));
   // console.log(filtered);
@@ -174,11 +174,11 @@ async function readRepo(_event: InvokeEvent, path: string) {
         : undefined;
     commitsBehindMaster = (commitsBehindMasterRaw?.split("\n").length || 1) - 1;
     const fetchHeadStat = await fs.stat(`${path}/.git/FETCH_HEAD`);
-    // lastFetchEpoch = Math.floor(fetchHeadStat.ctimeMs / 1000);
     lastFetchAt = new Date(fetchHeadStat.ctime);
   }
+  console.log("read repo", path, lastFetchAt);
   return {
-    name: path,
+    path,
     dockerfile,
     dockerCompose,
     isGitRepo,
