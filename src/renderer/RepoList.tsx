@@ -1,11 +1,10 @@
 import React, { FC } from "react";
 import { Machine, assign } from "xstate";
 import { useMachine } from "@xstate/react";
-import { Button, Code, List, ListItem, ListIcon } from "@chakra-ui/core";
-import { FaCheckCircle } from "react-icons/fa";
+import { Button, Accordion } from "@chakra-ui/core";
 
 import { readRepoList } from "./ipc";
-import { DirMeta } from "../main/ipcHandlers";
+import { RepoMeta } from "../main/ipcHandlers";
 
 import Repo from "./Repo";
 
@@ -28,7 +27,8 @@ type RepoListEvent = { type: "FETCH" | "RETRY" | "REFRESH" };
 
 interface RepoListContext {
   path: string;
-  list: DirMeta[];
+  list: RepoMeta[];
+  loadAt: string;
   error: unknown;
 }
 
@@ -49,7 +49,10 @@ export const repoListMachine = Machine<
         src: (ctx, event) => readRepoList(ctx.path),
         onDone: {
           target: "#repo-list.loaded",
-          actions: assign({ list: (ctx, event) => event.data }),
+          actions: assign<RepoListContext, { type: string; data: RepoMeta[] }>({
+            list: (ctx, event) => event.data,
+            loadAt: () => new Date().toISOString(),
+          }),
         },
         onError: {
           target: "failure",
@@ -68,7 +71,13 @@ export const repoListMachine = Machine<
             src: (ctx, event) => readRepoList(ctx.path),
             onDone: {
               target: "idle",
-              actions: assign({ list: (ctx, event) => event.data }),
+              actions: assign<
+                RepoListContext,
+                { type: string; data: RepoMeta[] }
+              >({
+                list: (ctx, event) => event.data,
+                loadAt: () => new Date().toISOString(),
+              }),
             },
             onError: {
               target: "failure",
@@ -120,19 +129,22 @@ const buttonLabel = (state: any) => {
 const RepoList: FC<{ path: string }> = ({ path }) => {
   const [current, send] = useMachine(repoListMachine, { context: { path } });
 
-  console.log(current);
-
   return (
     <>
       <Button onClick={onClick(current, send)}>{buttonLabel(current)}</Button>
       <div>
         <div>state: {JSON.stringify(current.value)}</div>
         {current.context.list?.length ? (
-          <List>
+          <Accordion allowMultiple allowToggle>
             {current.context.list?.map(({ name }) => (
-              <Repo key={name} name={name} path={`${path}/${name}`} />
+              <Repo
+                key={name}
+                loadAt={current.context.loadAt}
+                name={name}
+                path={`${path}/${name}`}
+              />
             ))}
-          </List>
+          </Accordion>
         ) : null}
       </div>
     </>

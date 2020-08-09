@@ -1,7 +1,16 @@
 import React, { FC, useEffect } from "react";
 import { Machine, assign } from "xstate";
 import { useMachine } from "@xstate/react";
-import { ListItem, ListIcon, Tooltip } from "@chakra-ui/core";
+import {
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
+  Code,
+  Box,
+  Flex,
+  Tooltip,
+} from "@chakra-ui/core";
 import { FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
 
 import { readRepo } from "../ipc";
@@ -86,37 +95,68 @@ export const repoMachine = Machine<RepoContext, RepoSchema, RepoEvent>({
   },
 });
 
-const Repo: FC<{ path: string; name: string }> = ({ path, name }) => {
+const Repo: FC<{ path: string; name: string; loadAt: string }> = ({
+  path,
+  name,
+  loadAt,
+  ...props
+}) => {
   const [state, send] = useMachine(repoMachine, { context: { path } });
 
   useEffect(() => {
-    send("FETCH");
-  }, []);
+    switch (true) {
+      case state.matches("idle"): {
+        send("FETCH");
+        break;
+      }
+      case state.matches("loaded.idle"): {
+        send("REFRESH");
+        break;
+      }
+    }
+  }, [loadAt]);
 
   if (state.matches("loaded")) {
     const { gitStatus, commitsBehindMaster, lastFetchAt } = state.context.meta;
     const sinceLastFetch = getSinceLastFetch(lastFetchAt);
 
+    // console.log(state.context.meta);
     return (
-      <ListItem>
-        {commitsBehindMaster ? (
-          <Tooltip
-            label={`${name} is ${commitsBehindMaster} commits behind origin/master`}
-            aria-label="A tooltip"
+      <AccordionItem {...props}>
+        <AccordionButton>
+          <Flex
+            flex="1"
+            textAlign="left"
+            alignItems="center"
+            flexDirection="row"
           >
-            <span>
-              <ListIcon as={FaExclamationCircle} color="orange.500" />
-            </span>
-          </Tooltip>
-        ) : (
-          <ListIcon as={FaCheckCircle} color="green.500" />
-        )}{" "}
-        <span>
-          {name}
+            {commitsBehindMaster ? (
+              <Tooltip
+                label={`${name} is ${commitsBehindMaster} commits behind origin/master`}
+                aria-label="A tooltip"
+              >
+                <Box color="orange.500">
+                  <FaExclamationCircle />
+                </Box>
+              </Tooltip>
+            ) : (
+              <Box color="green.500">
+                <FaCheckCircle />
+              </Box>
+            )}
+            <Box ml={2}>{name}</Box>
+          </Flex>
+          <Box mr={8}>
+            <Code>{gitStatus?.current}</Code>
+          </Box>
+          <AccordionIcon />
+        </AccordionButton>
+        <AccordionPanel pl={10} pb={4}>
           <div>
             {gitStatus
-              ? `- git: ${gitStatus?.current} -${gitStatus.behind} +
-            ${gitStatus.ahead}`
+              ? `${gitStatus.behind ? `behind: ${gitStatus.behind}` : ""} ${
+                  gitStatus.ahead ? `ahead: ${gitStatus.ahead}` : ""
+                }`
               : ""}
           </div>
           {commitsBehindMaster ? (
@@ -125,15 +165,15 @@ const Repo: FC<{ path: string; name: string }> = ({ path, name }) => {
               {commitsBehindMaster > 1 ? "s" : ""}
             </div>
           ) : null}
-          <div>{sinceLastFetch} since last fetch</div>
-        </span>
-      </ListItem>
+          <div>more than {sinceLastFetch} since last fetch</div>
+        </AccordionPanel>
+      </AccordionItem>
     );
   } else {
     return (
-      <ListItem>
-        <ListIcon as={FaCheckCircle} color="green.500" /> {name}
-      </ListItem>
+      <AccordionItem>
+        <AccordionButton>{name}</AccordionButton>
+      </AccordionItem>
     );
   }
 };
