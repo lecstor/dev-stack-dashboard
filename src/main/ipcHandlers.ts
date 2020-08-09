@@ -5,9 +5,16 @@ import {
 } from "electron";
 import { promises as fs } from "fs";
 import yaml from "js-yaml";
-import simpleGit, { SimpleGit, StatusResult } from "simple-git";
 
+import { listContainers } from "./docker";
 import { readDir, PathLike } from "./file";
+import {
+  getCommitsBehindMaster,
+  getIsGitRepo,
+  getLastFetchAt,
+  status as getRepoStatus,
+  StatusResult,
+} from "./git";
 
 async function readDirWrapper(
   _event: InvokeEvent,
@@ -66,12 +73,11 @@ export type DirMeta = {
   name: string;
   dockerfile: boolean;
   dockerCompose: boolean;
-  isGitRepo: boolean;
   gitStatus?: StatusResult;
   files?: FilesMeta;
 };
 
-async function readDockerComposeStructure(_event: InvokeEvent, path: PathLike) {
+async function readDockerComposeStructure(_event: InvokeEvent, path: string) {
   const dirs = await readDir(path, { directoriesOnly: true });
   const dirsMeta = await Promise.all(
     dirs.map(async (dir) => {
@@ -84,18 +90,12 @@ async function readDockerComposeStructure(_event: InvokeEvent, path: PathLike) {
         files = await readDockerCompose(`${fullPath}`);
       }
 
-      const git: SimpleGit = simpleGit(fullPath);
-      const isGitRepo = await git.checkIsRepo();
+      const gitStatus = await getRepoStatus(path);
 
-      let gitStatus;
-      if (isGitRepo) {
-        gitStatus = isGitRepo ? await git.status() : undefined;
-      }
       return {
         name: dir.name,
         dockerfile,
         dockerCompose,
-        isGitRepo,
         gitStatus,
         files,
       };
@@ -114,7 +114,7 @@ export type RepoMeta = {
   isGitRepo: boolean;
 };
 
-async function readRepoList(_event: InvokeEvent, path: PathLike) {
+async function readRepoList(_event: InvokeEvent, path: string) {
   const dirs = await readDir(path, { directoriesOnly: true });
   const dirsMeta = await Promise.all(
     dirs.map(async (dir) => {
@@ -122,8 +122,7 @@ async function readRepoList(_event: InvokeEvent, path: PathLike) {
 
       const hasDockerfile = await getHasDockerfile(fullPath);
       const hasDockerCompose = await getHasDockerCompose(fullPath);
-      const git: SimpleGit = simpleGit(fullPath);
-      const isGitRepo = await git.checkIsRepo();
+      const isGitRepo = await getIsGitRepo(path);
       return {
         name: dir.name,
         hasDockerfile,
@@ -144,7 +143,7 @@ export type RepoDetailMeta = {
   name: string;
   dockerfile: boolean;
   dockerCompose: boolean;
-  isGitRepo: boolean;
+  dockerComposePs: string;
   gitStatus?: StatusResult;
   lastFetchAt?: Date;
   files?: FilesMeta;
@@ -152,36 +151,36 @@ export type RepoDetailMeta = {
 };
 
 async function readRepo(_event: InvokeEvent, path: string) {
+  console.log("readRepo", path);
   const dockerfile = await getHasDockerfile(path);
   const dockerCompose = await getHasDockerCompose(path);
   let files;
+  let dockerComposePs;
   if (dockerCompose) {
     files = await readDockerCompose(`${path}`);
+    dockerComposePs = await listContainers(path);
+    console.log(path, { dockerComposePs });
   }
 
-  const git: SimpleGit = simpleGit(`${path}`);
-
-  const isGitRepo = await git.checkIsRepo();
-
-  let gitStatus;
+  const gitStatus = await getRepoStatus(path);
   let lastFetchAt;
   let commitsBehindMaster;
-  if (isGitRepo) {
-    gitStatus = isGitRepo ? await git.status() : undefined;
-    const commitsBehindMasterRaw =
-      isGitRepo && gitStatus
-        ? await git.raw(["cherry", `${gitStatus.current}`, "origin/master"])
+  if (gitStatus) {
+    try {
+      commitsBehindMaster = gitStatus?.current
+        ? getCommitsBehindMaster(path, gitStatus.current)
         : undefined;
-    commitsBehindMaster = (commitsBehindMasterRaw?.split("\n").length || 1) - 1;
-    const fetchHeadStat = await fs.stat(`${path}/.git/FETCH_HEAD`);
-    lastFetchAt = new Date(fetchHeadStat.ctime);
+      lastFetchAt = getLastFetchAt(path);
+    } catch (err) {
+      console.log(err);
+    }
   }
   console.log("read repo", path, lastFetchAt);
   return {
     path,
     dockerfile,
     dockerCompose,
-    isGitRepo,
+    dockerComposePs,
     gitStatus,
     lastFetchAt,
     files,
