@@ -1,7 +1,7 @@
 {
   "name": "dev-stack-dashboard",
   "productName": "dev-stack-dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Get a bird's-eye view of your local dev stack",
   "main": ".webpack/main",
   "scripts": {
@@ -104,6 +104,7 @@
     "@xstate/react": "^0.8.1",
     "date-fns": "^2.15.0",
     "electron-squirrel-startup": "^1.0.0",
+    "fix-path": "^3.0.0",
     "js-yaml": "^3.14.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
