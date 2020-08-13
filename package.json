@@ -1,8 +1,8 @@
 {
   "name": "dev-stack-dashboard",
-  "productName": "Dev Stack Dashboard",
+  "productName": "DevStackDashboard",
   "version": "1.0.0",
-  "description": "Aid the visibility of your local dev stack",
+  "description": "Get a bird's-eye view of your local dev stack",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -19,9 +19,7 @@
   "license": "MIT",
   "config": {
     "forge": {
-      "packagerConfig": {
-        "executableName": "dev-stack-dashboard"
-      },
+      "packagerConfig": {},
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
