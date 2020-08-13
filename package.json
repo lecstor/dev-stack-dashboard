@@ -1,6 +1,6 @@
 {
   "name": "dev-stack-dashboard",
-  "productName": "DevStackDashboard",
+  "productName": "dev-stack-dashboard",
   "version": "1.0.0",
   "description": "Get a bird's-eye view of your local dev stack",
   "main": ".webpack/main",
@@ -20,13 +20,13 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "executableName": "DevStackDashboard"
+        "executableName": "dev-stack-dashboard"
       },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "DevStackDashboard"
+            "name": "dev-stack-dashboard"
           }
         },
         {
