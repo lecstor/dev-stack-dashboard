@@ -1,12 +1,12 @@
 import React, { FC } from "react";
 import {
-  Avatar,
   useColorMode,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
 } from "@chakra-ui/core";
+import { FaCog } from "react-icons/fa";
 
 const AccountMenu: FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -14,7 +14,7 @@ const AccountMenu: FC = () => {
   return (
     <Menu>
       <MenuButton>
-        <Avatar size="sm" />
+        <FaCog />
       </MenuButton>
       <MenuList>
         <MenuItem onClick={toggleColorMode}>

@@ -16,12 +16,19 @@ const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     height: 800,
     width: 1200,
+    title: "Welcome2",
+    show: false,
     webPreferences: {
       nodeIntegration: true,
     },
   });
 
   initHandlers(mainWindow);
+
+  mainWindow.on("ready-to-show", () => {
+    mainWindow.show();
+    mainWindow.focus();
+  });
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);

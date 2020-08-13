@@ -9,7 +9,7 @@ const TitleBar: FC = () => {
       <Flex
         justifyContent="space-between"
         alignItems="center"
-        py={1}
+        py={2}
         px={2}
         bg={bg}
       >

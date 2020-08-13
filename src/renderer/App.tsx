@@ -1,24 +1,56 @@
-import React, { FC } from "react";
+import nodePath from "path";
 
-import { Box } from "@chakra-ui/core";
+import React, { FC, useEffect, useState } from "react";
 
-import useReadDockerDir from "./useReadDockerDir";
+import { Alert, AlertIcon, Box, Kbd, Text } from "@chakra-ui/core";
 
+import { getSettings, onDirectoryOpen, setSettingsStackDir } from "./ipc";
+
+import DevStack from "./DevStack";
 import TitleBar from "./TitleBar";
-import RepoList from "./RepoList";
+
+function cleanDir(path: string): string {
+  const pathObj = nodePath.parse(path);
+  return nodePath.join(pathObj.dir, pathObj.base);
+}
 
 const Root: FC = () => {
-  const readDirResult = useReadDockerDir({
-    path: "/Users/jason/compono",
-    directoriesOnly: true,
+  const [dir, setDir] = useState("");
+
+  useEffect(() => {
+    getSettings().then((settings) => {
+      if (settings?.stack.path) {
+        setDir(cleanDir(settings.stack.path));
+      }
+    });
+    return onDirectoryOpen((event, directory) => {
+      const dir = cleanDir(directory);
+      setDir(dir);
+      setSettingsStackDir(dir);
+    });
   });
-  const { files } = readDirResult || {};
 
   return (
     <div>
       <TitleBar />
-      <Box p={4}> Hi from Electron, React, and Chakra-UI!</Box>
-      <RepoList path="/Users/jason/compono" />
+      {dir ? (
+        <>
+          <Box p={4}>{dir}</Box>
+          <DevStack path={dir} />
+        </>
+      ) : (
+        <Alert status="info">
+          <AlertIcon />
+          <Text>
+            Use
+            <Text as="span" mx={2}>
+              <Kbd>Cmd</Kbd> + <Kbd>O</Kbd>
+            </Text>
+            (or the app file menu) to open the directory with your Docker
+            Compose file
+          </Text>
+        </Alert>
+      )}
     </div>
   );
 };

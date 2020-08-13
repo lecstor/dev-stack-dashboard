@@ -1,4 +1,4 @@
-import homeOrTmp from "home-or-tmp";
+import os from "os";
 
 import { promises as fs, PathLike, Dirent } from "fs";
 
@@ -16,13 +16,6 @@ export function readFile(path: string): Promise<string> {
   return fs.readFile(path, { encoding: "utf8" });
 }
 
-// type ReadDirOptions = {
-//   encoding?: string;
-//   withFileTypes?: boolean;
-// };
-
-// export const readDir = fs.readdir;
-
 export async function readDir(
   path: PathLike,
   options?: { directoriesOnly?: boolean; filesOnly?: boolean }
@@ -37,22 +30,12 @@ export async function readDir(
   return files;
 }
 
-// export function readDir(
-//   path: string,
-//   options: BaseEncodingOptions & { withFileTypes: true } = { encoding: "utf8" }
-// ): Promise<string[]> {
-//   return fs.readdir(path, {
-//     encoding: "utf8",
-//   });
-// }
-
-export function writeFile(file: File): Promise<void> {
-  const { path, content } = file;
+export function writeFile(path: string, content: string): Promise<void> {
   return fs.writeFile(path, content);
 }
 
 export async function getAppDirectory(): Promise<string> {
-  const dir = `${homeOrTmp}/.docker-dev-ui`;
+  const dir = `${os.homedir() || os.tmpdir()}/.dev-stack-dashboard`;
   try {
     await fs.mkdir(dir);
   } catch (error) {

@@ -1,11 +1,40 @@
-// import { IpcRendererEvent } from "electron";
 import { Dirent } from "fs";
 
 import { FilePath } from "../main/file";
 
-import { DirMeta, RepoDetailMeta, RepoMeta } from "../main/ipcHandlers";
+import {
+  DevStack,
+  DirMeta,
+  GitStatus,
+  RepoDetailMeta,
+  RepoMeta,
+  Settings,
+} from "../types";
 
-const { ipcRenderer } = window.require("electron");
+import { ipcRenderer } from "electron";
+
+export function fetchStack(path: FilePath): Promise<DevStack> {
+  return ipcRenderer.invoke("fetch-docker-stack", path);
+}
+
+export function fetchGitStatus(path: FilePath): Promise<GitStatus> {
+  return ipcRenderer.invoke("fetch-git-status", path);
+}
+
+export function fetchGitLastFetch(path: FilePath): Promise<Date | undefined> {
+  return ipcRenderer.invoke("fetch-git-last-fetch", path);
+}
+
+export function fetchGitFetch(path: FilePath): Promise<Date | undefined> {
+  return ipcRenderer.invoke("fetch-git-fetch", path);
+}
+
+export function fetchGitCommitsBehindMaster(
+  path: FilePath,
+  branch: string
+): Promise<number | undefined> {
+  return ipcRenderer.invoke("fetch-git-commits-behind-master", path, branch);
+}
 
 export function readDir(
   path: FilePath,
@@ -26,33 +55,21 @@ export function readRepo(path: FilePath): Promise<RepoDetailMeta> {
   return ipcRenderer.invoke("read-repo", path);
 }
 
-// export function ipcOn(
-//   channel: string,
-//   listener: (event: IpcRendererEvent, ...args: any[]) => void
-// ): () => void {
-//   ipcRenderer.on(channel, listener);
-//   return () => ipcRenderer.off(channel, listener);
-// }
+export function onDirectoryOpen(
+  listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void
+): () => void {
+  ipcRenderer.on("directory-opened", listener);
+  return () => ipcRenderer.off("directory-opened", listener);
+}
 
-// type File = {
-//   path: string;
-//   content: string;
-// };
+export function getSettings(): Promise<Settings> {
+  return ipcRenderer.invoke("get-settings");
+}
 
-// export function onOpenFile(listener: (file: File) => void): () => void {
-//   return ipcOn("open-file", (_event: IpcRendererEvent, file: File) =>
-//     listener(file)
-//   );
-// }
+export function setSettingsStackDir(path: string): Promise<Settings> {
+  return ipcRenderer.invoke("set-settings-stack-dir", path);
+}
 
-// export function onSaveFile(listener: (file: File) => void): () => void {
-//   return ipcOn("save-file", (_event: IpcRendererEvent, file: File) =>
-//     listener(file)
-//   );
-// }
-
-// export function onNewFile(listener: (file: File) => void): () => void {
-//   return ipcOn("new-file", (_event: IpcRendererEvent, file: File) =>
-//     listener(file)
-//   );
-// }
+export function setSettingsStackState(state: DevStack): Promise<Settings> {
+  return ipcRenderer.invoke("set-settings-stack-state", state);
+}

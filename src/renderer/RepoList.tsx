@@ -3,9 +3,9 @@ import { Machine, assign } from "xstate";
 import { useMachine } from "@xstate/react";
 import { Button, Accordion } from "@chakra-ui/core";
 
-import { readRepoList } from "./ipc";
-import { RepoMeta } from "../main/ipcHandlers";
+import { RepoMeta } from "../types";
 
+import { readRepoList } from "./ipc";
 import Repo from "./Repo";
 
 interface RepoListSchema {

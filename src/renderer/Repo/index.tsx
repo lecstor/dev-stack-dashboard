@@ -14,8 +14,8 @@ import {
 import { FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
 
 import { readRepo } from "../ipc";
-import { RepoDetailMeta } from "../../main/ipcHandlers";
-import getSinceLastFetch from "./getSinceLastFetch";
+import { RepoDetailMeta } from "../../types";
+import formatSinceLastFetch from "./getSinceLastFetch";
 
 interface RepoSchema {
   states: {
@@ -118,9 +118,8 @@ const Repo: FC<{ path: string; name: string; loadAt: string }> = ({
 
   if (state.matches("loaded")) {
     const { gitStatus, commitsBehindMaster, lastFetchAt } = state.context.meta;
-    const sinceLastFetch = getSinceLastFetch(lastFetchAt);
+    const sinceLastFetch = formatSinceLastFetch(lastFetchAt);
 
-    // console.log(state.context.meta);
     return (
       <AccordionItem {...props}>
         <AccordionButton>

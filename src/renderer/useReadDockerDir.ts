@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { FilePath } from "../main/file";
-import { DirMeta } from "../main/ipcHandlers";
+import { DirMeta } from "../types";
 
 import { readDockerDir } from "./ipc";
 

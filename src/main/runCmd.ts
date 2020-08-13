@@ -22,17 +22,14 @@ export function spawnCmd(
     const p = spawn(cmd, args, options);
 
     p.stdout.on("data", (data) => {
-      console.log("stdout: " + data);
       result.push(data.toString());
     });
 
     p.stderr.on("data", (data) => {
-      console.log("stderr: " + data);
       error.push(data.toString());
     });
 
     p.on("close", (code) => {
-      console.log("child process exited with code " + code);
       if (code) {
         reject(error);
       } else {

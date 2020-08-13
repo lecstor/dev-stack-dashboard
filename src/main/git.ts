@@ -1,14 +1,18 @@
 import { promises as fs } from "fs";
-import simpleGit, { SimpleGit, StatusResult } from "simple-git";
+import simpleGit, { SimpleGit, FetchResult, StatusResult } from "simple-git";
+import { ComposeState } from "../types";
 
-export { StatusResult };
+export type GitStatus = StatusResult;
+export type GitFetch = FetchResult;
 
 export async function getIsGitRepo(path: string): Promise<boolean> {
   const git: SimpleGit = simpleGit(path);
   return git.checkIsRepo();
 }
 
-export async function status(path: string): Promise<StatusResult | undefined> {
+export async function getGitStatus(
+  path: string
+): Promise<StatusResult | undefined> {
   const git: SimpleGit = simpleGit(path);
 
   const isGitRepo = await git.checkIsRepo();
@@ -18,9 +22,17 @@ export async function status(path: string): Promise<StatusResult | undefined> {
   return git.status();
 }
 
+export async function getGitFetch(
+  path: string
+): Promise<FetchResult | undefined> {
+  const git: SimpleGit = simpleGit(path);
+  const isGitRepo = await git.checkIsRepo();
+  if (!isGitRepo) return;
+  return git.fetch();
+}
+
 export async function getLastFetchAt(path: string): Promise<Date> {
   const fetchHeadStat = await fs.stat(`${path}/.git/FETCH_HEAD`);
-  console.log("read repo fetchHeadStat.ctime", path, fetchHeadStat.ctime);
   return new Date(fetchHeadStat.ctime);
 }
 
@@ -33,4 +45,24 @@ export async function getCommitsBehindMaster(
     ? await git.raw(["cherry", branch, "origin/master"])
     : undefined;
   return (commitsBehindMaster?.split("\n").length || 1) - 1;
+}
+
+export async function getServicesBranches(
+  path: string,
+  composeState: ComposeState
+): Promise<Record<string, string>> {
+  const serviceKeys = Object.keys(composeState);
+  const branches: Record<string, string> = {};
+  for (const key of serviceKeys) {
+    const service = composeState[key];
+    if (["mount", "build"].includes(service.state)) {
+      if (service.context) {
+        const status = await getGitStatus(`${path}/${service.context}`);
+        if (status?.current) {
+          branches[key] = status?.current;
+        }
+      }
+    }
+  }
+  return branches;
 }
