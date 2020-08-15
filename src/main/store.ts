@@ -32,9 +32,9 @@ export async function setSettingsStackState(
 ): Promise<void> {
   const settingsPath = getSettingsFilePath();
   const settings = await getSettings();
-  const { path, composeState } = stackState;
+  const { path, composeConfig } = stackState;
   return writeFile(
     settingsPath,
-    JSON.stringify({ ...settings, stack: { path, composeState } }, null, 2)
+    JSON.stringify({ ...settings, stack: { path, composeConfig } }, null, 2)
   );
 }

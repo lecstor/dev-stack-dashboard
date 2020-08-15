@@ -1,23 +1,10 @@
-import {
-  ipcMain,
-  BrowserWindow,
-  IpcMainInvokeEvent as InvokeEvent,
-} from "electron";
+import { ipcMain, IpcMainInvokeEvent as IE } from "electron";
 
 import { DevStack } from "../types";
 
-import {
-  fetchStack,
-  getHasDockerCompose,
-  getHasDockerfile,
-  listContainers,
-  parseComposeFiles,
-  readDockerCompose,
-} from "./docker";
-import { readDir, PathLike } from "./file";
+import { fetchStack } from "./docker";
 import {
   getCommitsBehindMaster,
-  getIsGitRepo,
   getLastFetchAt,
   getGitFetch,
   getGitStatus,
@@ -30,137 +17,33 @@ import {
   setSettingsStackState,
 } from "./store";
 
-async function readDirWrapper(
-  _event: InvokeEvent,
-  path: PathLike,
-  options: { directoriesOnly: boolean }
-) {
-  return readDir(path, options);
-}
+type Path = string;
 
-async function readDockerComposeStructure(_event: InvokeEvent, path: string) {
-  const dirs = await readDir(path, { directoriesOnly: true });
-  const dirsMeta = await Promise.all(
-    dirs.map(async (dir) => {
-      const fullPath = `${path}/${dir.name}`;
-
-      const dockerfile = await getHasDockerfile(fullPath);
-      const dockerCompose = await getHasDockerCompose(fullPath);
-      let files;
-      if (dockerCompose) {
-        files = await readDockerCompose(`${fullPath}`);
-      }
-
-      const gitStatus = await getGitStatus(path);
-
-      return {
-        name: dir.name,
-        dockerfile,
-        dockerCompose,
-        gitStatus,
-        files,
-      };
-    })
-  );
-  const filtered = dirsMeta.filter((m) => m.dockerCompose && m.dockerfile);
-  return filtered;
-}
-
-async function readRepoList(_event: InvokeEvent, path: string) {
-  const dirs = await readDir(path, { directoriesOnly: true });
-  const dirsMeta = await Promise.all(
-    dirs.map(async (dir) => {
-      const fullPath = `${path}/${dir.name}`;
-
-      const hasDockerfile = await getHasDockerfile(fullPath);
-      const hasDockerCompose = await getHasDockerCompose(fullPath);
-      const isGitRepo = await getIsGitRepo(path);
-      return {
-        name: dir.name,
-        hasDockerfile,
-        hasDockerCompose,
-        isGitRepo,
-      };
-    })
-  );
-  const filtered = dirsMeta.filter(
-    (m) => m.isGitRepo && (m.hasDockerCompose || m.hasDockerfile)
-  );
-  return filtered;
-}
-
-async function readRepo(_event: InvokeEvent, path: string) {
-  const dockerfile = await getHasDockerfile(path);
-  const dockerCompose = await getHasDockerCompose(path);
-  let files;
-  let dockerComposePs;
-  if (dockerCompose) {
-    files = await readDockerCompose(`${path}`);
-    dockerComposePs = await listContainers(path);
-  }
-
-  const gitStatus = await getGitStatus(path);
-  let lastFetchAt;
-  let commitsBehindMaster;
-  if (gitStatus) {
-    try {
-      commitsBehindMaster = gitStatus?.current
-        ? getCommitsBehindMaster(path, gitStatus.current)
-        : undefined;
-      lastFetchAt = getLastFetchAt(path);
-    } catch (err) {
-      console.log(err);
-    }
-  }
-  return {
-    path,
-    dockerfile,
-    dockerCompose,
-    dockerComposePs,
-    gitStatus,
-    lastFetchAt,
-    files,
-    commitsBehindMaster,
-  };
-}
-
-function fetchDockerStack(
-  _event: InvokeEvent,
-  path: string
-): Promise<DevStack> {
+function fetchDockerStack(e: IE, path: Path): Promise<DevStack> {
   return fetchStack(path);
 }
 
-async function fetchGitStatus(
-  _event: InvokeEvent,
-  path: string
-): Promise<GitStatus | undefined> {
+async function fetchGitStatus(e: IE, path: Path): Promise<GitStatus | void> {
   return getGitStatus(path);
 }
 
-async function fetchGitLastFetch(
-  _event: InvokeEvent,
-  path: string
-): Promise<Date | undefined> {
+async function fetchGitLastFetch(e: IE, path: Path): Promise<Date | void> {
   return getLastFetchAt(path);
 }
 
-async function fetchGitFetch(
-  _event: InvokeEvent,
-  path: string
-): Promise<GitFetch | undefined> {
+async function fetchGitFetch(e: IE, path: Path): Promise<GitFetch | void> {
   return getGitFetch(path);
 }
 
 async function fetchGitCommitsBehindMaster(
-  _event: InvokeEvent,
-  path: string,
+  e: IE,
+  path: Path,
   branch: string
-): Promise<number | undefined> {
+): Promise<number | void> {
   return getCommitsBehindMaster(path, branch);
 }
 
-export function initHandlers(window: BrowserWindow): void {
+export function initHandlers(): void {
   ipcMain.handle("fetch-docker-stack", fetchDockerStack);
   ipcMain.handle("fetch-git-status", fetchGitStatus);
   ipcMain.handle("fetch-git-last-fetch", fetchGitLastFetch);
@@ -171,16 +54,10 @@ export function initHandlers(window: BrowserWindow): void {
   );
 
   ipcMain.handle("get-settings", getSettings);
-  ipcMain.handle("set-settings-stack-dir", (event: InvokeEvent, path: string) =>
+  ipcMain.handle("set-settings-stack-dir", (event: IE, path: Path) =>
     setSettingsStackDir(path)
   );
-  ipcMain.handle(
-    "set-settings-stack-state",
-    (event: InvokeEvent, state: DevStack) => setSettingsStackState(state)
+  ipcMain.handle("set-settings-stack-state", (event: IE, state: DevStack) =>
+    setSettingsStackState(state)
   );
-
-  ipcMain.handle("read-dir", readDirWrapper);
-  ipcMain.handle("read-docker-dir", readDockerComposeStructure);
-  ipcMain.handle("read-repo-list", readRepoList);
-  ipcMain.handle("read-repo", readRepo);
 }

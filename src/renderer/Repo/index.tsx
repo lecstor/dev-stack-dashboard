@@ -50,7 +50,7 @@ export const repoMachine = Machine<RepoContext, RepoSchema, RepoEvent>({
     },
     loading: {
       invoke: {
-        src: (ctx, event) => readRepo(ctx.path),
+        src: (ctx) => readRepo(ctx.path),
         onDone: {
           target: "#repo.loaded",
           actions: assign({ meta: (ctx, event) => event.data }),
@@ -69,7 +69,7 @@ export const repoMachine = Machine<RepoContext, RepoSchema, RepoEvent>({
         },
         refreshing: {
           invoke: {
-            src: (ctx, event) => readRepo(ctx.path),
+            src: (ctx) => readRepo(ctx.path),
             onDone: {
               target: "idle",
               actions: assign({ meta: (ctx, event) => event.data }),

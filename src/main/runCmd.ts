@@ -54,7 +54,7 @@ export function execCmd(
       { timeout: 10000, maxBuffer: 20000 * 1024, ...options },
       function (error, stdout, stderr) {
         if (error) {
-          (error as any).message = stderr.toString();
+          error.message = stderr.toString();
           reject(error);
         } else {
           resolve(stdout.toString());

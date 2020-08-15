@@ -29,14 +29,16 @@ const DevStack: FC<{ path: string }> = ({ path }) => {
 
   useInterval(refreshStack, 30000);
 
-  const services = stack ? Object.keys(stack?.composeState) : [];
+  if (!stack?.composeConfig) return null;
+
+  const services = stack ? Object.keys(stack.composeConfig.services) : [];
 
   const localServices = services
     .sort()
-    .filter((name) => stack?.composeState[name]?.state !== "image");
+    .filter((name) => stack.composeConfig.services[name].state !== "image");
   const masterServices = services
     .sort()
-    .filter((name) => stack?.composeState[name]?.state === "image");
+    .filter((name) => stack.composeConfig.services[name].state === "image");
 
   return (
     <>
@@ -46,14 +48,14 @@ const DevStack: FC<{ path: string }> = ({ path }) => {
       <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4} mb={8}>
         <Accordion allowToggle>
           {localServices.map((name) => {
-            const state = stack?.composeState[name]?.state;
+            const state = stack.composeConfig.services[name].state;
             return (
               <Service
                 key={name}
                 name={name}
-                path={stack?.composeState[name]?.path}
+                path={stack.composeConfig.services[name].path}
                 state={state}
-                dockerPs={stack?.dockerPs?.[name]}
+                dockerPs={stack.dockerPs?.[name]}
               />
             );
           })}
@@ -65,20 +67,20 @@ const DevStack: FC<{ path: string }> = ({ path }) => {
       <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4}>
         <Accordion allowToggle>
           {masterServices.map((name) => {
-            const state = stack?.composeState[name]?.state;
+            const state = stack.composeConfig.services[name]?.state;
             return (
               <Service
                 key={name}
                 name={name}
                 state={state}
-                dockerPs={stack?.dockerPs?.[name]}
+                dockerPs={stack.dockerPs?.[name]}
               />
             );
           })}
         </Accordion>
       </Box>
-      <pre>{JSON.stringify(stack?.composeState, null, 2)}</pre>
-      <pre>{JSON.stringify(stack?.dockerPs, null, 2)}</pre>
+      <pre>{JSON.stringify(stack.composeConfig, null, 2)}</pre>
+      <pre>{JSON.stringify(stack.dockerPs, null, 2)}</pre>
     </>
   );
 };

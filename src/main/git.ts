@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import simpleGit, { SimpleGit, FetchResult, StatusResult } from "simple-git";
-import { ComposeState } from "../types";
+import { ComposeConfig } from "../types";
 
 export type GitStatus = StatusResult;
 export type GitFetch = FetchResult;
@@ -22,13 +22,14 @@ export async function getGitStatus(
   return git.status();
 }
 
-export async function getGitFetch(
-  path: string
-): Promise<FetchResult | undefined> {
+export async function getGitFetch(path: string): Promise<FetchResult | void> {
   const git: SimpleGit = simpleGit(path);
   const isGitRepo = await git.checkIsRepo();
   if (!isGitRepo) return;
-  return git.fetch();
+  return git.fetch().catch((e) => {
+    console.log(path, e);
+    return;
+  });
 }
 
 export async function getLastFetchAt(path: string): Promise<Date> {
@@ -49,15 +50,15 @@ export async function getCommitsBehindMaster(
 
 export async function getServicesBranches(
   path: string,
-  composeState: ComposeState
+  composeConfig: ComposeConfig
 ): Promise<Record<string, string>> {
-  const serviceKeys = Object.keys(composeState);
+  const serviceKeys = Object.keys(composeConfig.services);
   const branches: Record<string, string> = {};
   for (const key of serviceKeys) {
-    const service = composeState[key];
+    const service = composeConfig.services[key];
     if (["mount", "build"].includes(service.state)) {
-      if (service.context) {
-        const status = await getGitStatus(`${path}/${service.context}`);
+      if (service.build?.context) {
+        const status = await getGitStatus(`${path}/${service.build.context}`);
         if (status?.current) {
           branches[key] = status?.current;
         }

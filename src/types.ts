@@ -27,17 +27,37 @@ export interface GitStatus {
 }
 /***********************************/
 
-export type ServiceComposeState = {
-  context: string;
+export type ServiceSourceType = "build" | "image" | "mount";
+
+export type ComposeService = {
+  state: ServiceSourceType;
+  path?: string;
+  build?: {
+    context?: string;
+    dockerfile?: string;
+  };
   image?: string;
-  state: string;
+  volumes?: Array<{
+    type?: string;
+    source?: string;
+    target?: string;
+    volume?: {
+      nocopy: boolean;
+    };
+    read_only?: boolean;
+  }>;
+  container_name?: string;
 };
 
-export type ComposeState = Record<string, Record<string, any>>;
+export type ComposeConfig = {
+  services: {
+    [serviceName: string]: ComposeService;
+  };
+};
 
 export type DevStack = {
   path: string;
-  composeState: ComposeState;
+  composeConfig: ComposeConfig;
   dockerPs?: Record<string, DockerPsContainer>;
 };
 
@@ -56,7 +76,44 @@ export type DockerPsContainer = {
   ports: string;
 };
 
-export type DockerComposeFiles = Record<string, any>;
+export type DockerComposeVolume =
+  | string
+  | {
+      type?: string;
+      source?: string;
+      target?: string;
+      volume?: {
+        nocopy: boolean;
+      };
+    };
+
+export type DockerComposeService = {
+  image: string;
+  build?:
+    | string
+    | {
+        context: string;
+        dockerfile?: string;
+        args?: Record<string, string> | string[];
+        cache_from?: string[];
+        labels?: Record<string, string> | string[];
+        network?: string;
+        shm_size?: string;
+        target: string;
+      };
+  volumes?: DockerComposeVolume[];
+  container_name?: string;
+};
+
+export type DockerComposeFile = {
+  version: string;
+  services: Record<string, DockerComposeService>;
+  networks: Record<string, any>;
+  volumes?: Record<string, any>;
+  configs?: Record<string, Record<string, string | boolean>>;
+};
+
+export type DockerComposeFiles = Record<string, DockerComposeFile>;
 
 export type RepoDetailMeta = {
   name: string;
@@ -77,5 +134,5 @@ export type RepoMeta = {
 };
 
 export type Settings = {
-  stack: Pick<DevStack, "path" | "composeState">;
+  stack: Pick<DevStack, "path" | "composeConfig">;
 };

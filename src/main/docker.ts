@@ -4,12 +4,19 @@ import yaml from "js-yaml";
 
 import { execCmd } from "./runCmd";
 
-import { readDir } from "./file";
+// import { readDir } from "./file";
 
-import { DevStack, DockerComposeFiles, DockerPsContainer } from "../types";
-
-const isObject = (v: unknown) =>
-  Object.prototype.toString.call(v) === "[object Object]";
+import {
+  ComposeConfig,
+  ComposeService,
+  DevStack,
+  DockerComposeFile,
+  DockerComposeFiles,
+  DockerComposeService,
+  DockerComposeVolume,
+  DockerPsContainer,
+  ServiceSourceType,
+} from "../types";
 
 async function hasFile(path: string): Promise<boolean> {
   try {
@@ -40,81 +47,141 @@ async function listContainers(path: string): Promise<DockerPsContainer[]> {
   return containers;
 }
 
-async function readDockerCompose(path: string): Promise<DockerComposeFiles> {
-  const files = await Promise.all(
-    (await readDir(path, { filesOnly: true }))
-      .filter((f) => /^docker-compose\./.test(f.name))
-      .map(async (f) => {
-        try {
-          const content = await fs.readFile(`${path}/${f.name}`, "utf8");
-          const data = yaml.safeLoad(content);
-          return { name: f.name, data };
-        } catch (e) {
-          console.log(e);
-          return null;
-        }
-      })
+async function readDockerComposeFile(
+  path: string
+): Promise<DockerComposeFile | void> {
+  try {
+    const content = await fs.readFile(path, "utf8");
+    const data = yaml.safeLoad(content);
+    return data as DockerComposeFile;
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+}
+
+async function readDockerComposeFiles(
+  path: string,
+  ...files: string[]
+): Promise<DockerComposeFiles> {
+  const contents = await Promise.all(
+    files.map(async (file) => {
+      return readDockerComposeFile(nodePath.join(path, file));
+    })
   );
   const lu: DockerComposeFiles = {};
-  files.forEach((f) => {
-    if (f?.name && f?.data) {
-      lu[f.name] = f.data;
+  files.forEach((file, idx) => {
+    const content = contents[idx];
+    if (content) {
+      lu[file] = content;
     }
   });
   return lu;
 }
 
-function parseComposeFiles(
-  files: DockerComposeFiles,
-  path: string
-): DevStack["composeState"] {
-  const services: Record<string, any> = {};
+// async function readDockerCompose(path: string): Promise<DockerComposeFiles> {
+//   const files = await Promise.all(
+//     (await readDir(path, { filesOnly: true }))
+//       .filter((f) => /^docker-compose\./.test(f.name))
+//       .map(async (f) => {
+//         return {
+//           name: f.name,
+//           data: await readDockerComposeFile(`${path}/${f.name}`),
+//         };
+//       })
+//   );
+//   const lu: DockerComposeFiles = {};
+//   files.forEach((f) => {
+//     if (f?.name && f?.data) {
+//       lu[f.name] = f.data;
+//     }
+//   });
+//   return lu;
+// }
 
-  ["docker-compose.yml", "docker-compose.override.yml"].forEach((file) => {
-    const serviceKeys = Object.keys(files[file].services);
-    serviceKeys.forEach((key: string) => {
-      const { image, build, volumes } = files[file].services[key];
-      let buildContext = build;
-      if (isObject(build)) {
-        buildContext = build.context;
+const composeProps: Array<keyof DockerComposeService> = [
+  "container_name",
+  "image",
+  "build",
+  "volumes",
+];
+
+function parseComposeFiles(files: DockerComposeFiles): ComposeConfig {
+  const services: ComposeConfig["services"] = {};
+
+  Object.keys(files).forEach((fileName) => {
+    const dcServices = files[fileName].services;
+    Object.keys(dcServices).forEach((serviceName: string) => {
+      if (!services[serviceName]) {
+        services[serviceName] = {
+          state: "image",
+          build: {},
+          volumes: [],
+        };
       }
-
-      services[key] = {
-        ...services[key],
-        buildContext,
-        image,
-        volumes,
-      };
+      const dcService = dcServices[serviceName];
+      const service = services[serviceName];
+      composeProps.forEach((prop) => {
+        if (dcService[prop]) {
+          if (prop === "build") {
+            if (typeof dcService.build === "string") {
+              service.build = { context: dcService.build };
+            } else {
+              service.build = dcService.build;
+            }
+          } else if (prop === "volumes") {
+            if (dcService.volumes) {
+              service.volumes = dcService.volumes.map(
+                (volume: DockerComposeVolume) => {
+                  if (typeof volume === "string") {
+                    const parts = volume.split(":");
+                    if (parts.length === 1) {
+                      const [target] = parts;
+                      return { target };
+                    }
+                    if (parts.length === 2) {
+                      const [source, target] = parts;
+                      return { source, target };
+                    }
+                    const [source, target, mode] = parts;
+                    return { source, target, read_only: mode === "ro" };
+                  } else {
+                    return volume;
+                  }
+                }
+              );
+            }
+          } else {
+            service[prop] = dcService[prop];
+          }
+        }
+      });
     });
   });
 
-  const serviceKeys = Object.keys(services);
+  return { services };
+}
 
-  serviceKeys.forEach((key: string) => {
-    const service = services[key];
-    services[key].state = service.buildContext
-      ? service.volumes
-        ? "mount"
-        : "build"
-      : "image";
-  });
-
-  for (const key of serviceKeys) {
-    const service = services[key];
-    if (["mount", "build"].includes(service.state)) {
-      let repoPath = "";
-      if (service.buildContext) {
-        repoPath = nodePath.normalize(
-          nodePath.join(path, service.buildContext)
-        );
-      }
-      if (repoPath) {
-        services[key].path = repoPath;
-      }
+function getServicePath(
+  path: string,
+  sourceType: string,
+  service: ComposeService
+): string | undefined {
+  if (["mount", "build"].includes(sourceType)) {
+    let repoPath = "";
+    if (service.build?.context) {
+      repoPath = nodePath.normalize(nodePath.join(path, service.build.context));
     }
+    return repoPath;
   }
+}
 
-  return services;
+function getServiceSourceType(service: ComposeService): ServiceSourceType {
+  return service.build?.context
+    ? service.volumes?.length
+      ? "mount"
+      : "build"
+    : "image";
 }
 
 function parseContainerList(
@@ -132,12 +199,27 @@ function parseContainerList(
 }
 
 export async function fetchStack(path: string): Promise<DevStack> {
-  const composeCfgFiles = await readDockerCompose(path);
-  const composeState = parseComposeFiles(composeCfgFiles, path);
+  const composeCfgFiles = await readDockerComposeFiles(
+    path,
+    "docker-compose.yml",
+    "docker-compose.override.yml"
+  );
+  const composeConfig = parseComposeFiles(composeCfgFiles);
+
+  Object.keys(composeConfig.services).forEach((key) => {
+    const service = composeConfig.services[key];
+    const sourceType = getServiceSourceType(service);
+    composeConfig.services[key] = {
+      ...service,
+      state: sourceType,
+      path: getServicePath(path, sourceType, service),
+    };
+  });
+
   const dockerPs = parseContainerList(await listContainers(path), path);
   return {
     path,
-    composeState,
+    composeConfig,
     dockerPs,
   };
 }
