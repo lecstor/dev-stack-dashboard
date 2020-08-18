@@ -14,7 +14,7 @@ type Props = {
   gitCommitsBehindMaster?: number;
   gitStatus?: GitStatus;
   label: string | ReactElement;
-  lastFetch?: Date;
+  lastFetch?: number;
 };
 
 const GitServicePanel: FC<Props> = ({

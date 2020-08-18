@@ -1,23 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import subMinutes from "date-fns/subMinutes";
 
 import { fetchGitFetch, fetchGitLastFetch } from "../ipc";
 
+import { setGitRepoLastFetch } from "../store/gitSlice";
+import { selectGitLastFetch } from "../store/gitSelectors";
+
 type Return = {
-  lastFetch?: Date;
+  lastFetch?: number;
   fetchRepo: () => Promise<void>;
   checkFetch: () => Promise<void>;
 };
 
-type Options = { path?: string; expire?: number };
+type Options = { name: string; path?: string; expire?: number };
 
-const useManageGitFetch = ({ path, expire = 15 }: Options): Return => {
-  const [lastFetch, setLastFetch] = useState<Date | undefined>();
+const useManageGitFetch = ({ name, path, expire = 15 }: Options): Return => {
+  const dispatch = useDispatch();
+  const lastFetch = useSelector(selectGitLastFetch(name));
 
   const fetchRepo = () => {
     if (path) {
       return fetchGitFetch(path).then(() =>
-        fetchGitLastFetch(path).then((newLastAt) => setLastFetch(newLastAt))
+        fetchGitLastFetch(path).then((newLastAt) => {
+          dispatch(setGitRepoLastFetch(newLastAt?.getTime(), name));
+        })
       );
     }
     return Promise.resolve();
@@ -29,8 +36,8 @@ const useManageGitFetch = ({ path, expire = 15 }: Options): Return => {
         if (lastAt) {
           if (lastAt < subMinutes(new Date(), expire)) {
             return fetchRepo();
-          } else if (lastAt.toString() !== lastFetch?.toString()) {
-            setLastFetch(lastAt);
+          } else if (lastAt.getTime() !== lastFetch) {
+            dispatch(setGitRepoLastFetch(lastAt.getTime(), name));
           }
         }
       });
@@ -42,7 +49,11 @@ const useManageGitFetch = ({ path, expire = 15 }: Options): Return => {
     fetchRepo();
   }, []);
 
-  return { lastFetch, checkFetch, fetchRepo };
+  return {
+    lastFetch,
+    checkFetch,
+    fetchRepo,
+  };
 };
 
 export default useManageGitFetch;

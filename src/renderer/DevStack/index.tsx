@@ -1,19 +1,31 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
 import { Accordion, Box, Heading } from "@chakra-ui/core";
 
 import { fetchStack, getSettings, setSettingsStackState } from "../ipc";
-import { DevStack as DevStackType } from "../../types";
 import useInterval from "../hooks/useInterval";
+
+import { setComposeConfig } from "../store/configSlice";
+import { selectServicesBySourceTypes } from "../store/configSelectors";
+
+import { setDockerPs } from "../store/dockerSlice";
+import { selectDockerPs } from "../store/dockerSelectors";
 
 import Service from "./Service";
 
 const DevStack: FC<{ path: string }> = ({ path }) => {
-  const [stack, setStack] = useState<DevStackType>();
+  const dispatch = useDispatch();
+  const importedServices = useSelector(selectServicesBySourceTypes(["image"]));
+  const localServices = useSelector(
+    selectServicesBySourceTypes(["build", "mount"])
+  );
+  const dockerPs = useSelector(selectDockerPs);
 
   const refreshStack = () =>
     fetchStack(path).then((result) => {
-      setStack(result);
+      dispatch(setComposeConfig(result.composeConfig));
+      dispatch(setDockerPs(result.dockerPs));
       setSettingsStackState(result);
     });
 
@@ -21,7 +33,7 @@ const DevStack: FC<{ path: string }> = ({ path }) => {
     getSettings()
       .then((settings) => {
         if (settings.stack) {
-          setStack(settings.stack);
+          dispatch(setComposeConfig(settings.stack.composeConfig));
         }
       })
       .then(refreshStack);
@@ -29,58 +41,52 @@ const DevStack: FC<{ path: string }> = ({ path }) => {
 
   useInterval(refreshStack, 30000);
 
-  if (!stack?.composeConfig) return null;
-
-  const services = stack ? Object.keys(stack.composeConfig.services) : [];
-
-  const localServices = services
-    .sort()
-    .filter((name) => stack.composeConfig.services[name].state !== "image");
-  const masterServices = services
-    .sort()
-    .filter((name) => stack.composeConfig.services[name].state === "image");
-
   return (
     <>
-      <Heading size="sm" m={2} ml={4}>
-        Local source
-      </Heading>
-      <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4} mb={8}>
-        <Accordion allowToggle>
-          {localServices.map((name) => {
-            const state = stack.composeConfig.services[name].state;
-            return (
-              <Service
-                key={name}
-                name={name}
-                path={stack.composeConfig.services[name].path}
-                state={state}
-                dockerPs={stack.dockerPs?.[name]}
-              />
-            );
-          })}
-        </Accordion>
-      </Box>
-      <Heading size="sm" m={2} ml={4}>
-        Master images
-      </Heading>
-      <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4}>
-        <Accordion allowToggle>
-          {masterServices.map((name) => {
-            const state = stack.composeConfig.services[name]?.state;
-            return (
-              <Service
-                key={name}
-                name={name}
-                state={state}
-                dockerPs={stack.dockerPs?.[name]}
-              />
-            );
-          })}
-        </Accordion>
-      </Box>
-      <pre>{JSON.stringify(stack.composeConfig, null, 2)}</pre>
-      <pre>{JSON.stringify(stack.dockerPs, null, 2)}</pre>
+      {localServices ? (
+        <>
+          <Heading size="sm" m={2} ml={4}>
+            Built from local source files
+          </Heading>
+          <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4} mb={8}>
+            <Accordion allowToggle>
+              {localServices.map((service) => {
+                return (
+                  <Service
+                    key={service.name}
+                    name={service.name}
+                    path={service.path}
+                    sourceType={service.sourceType}
+                    dockerPs={dockerPs?.[service.name]}
+                  />
+                );
+              })}
+            </Accordion>
+          </Box>
+        </>
+      ) : null}
+
+      {importedServices ? (
+        <>
+          <Heading size="sm" m={2} ml={4}>
+            Images pulled from remote repository
+          </Heading>
+          <Box borderX="1px solid rgba(255, 255, 255, 0.16)" m={4} mb={8}>
+            <Accordion allowToggle>
+              {importedServices.map((service) => {
+                return (
+                  <Service
+                    key={service.name}
+                    name={service.name}
+                    sourceType={service.sourceType}
+                    dockerPs={dockerPs?.[service.name]}
+                  />
+                );
+              })}
+            </Accordion>
+          </Box>
+        </>
+      ) : null}
     </>
   );
 };

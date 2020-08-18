@@ -117,7 +117,7 @@ const Repo: FC<{ path: string; name: string; loadAt: string }> = ({
   }, [loadAt]);
 
   if (state.matches("loaded")) {
-    const { gitStatus, commitsBehindMaster, lastFetchAt } = state.context.meta;
+    const { gitStatus, behindMaster, lastFetchAt } = state.context.meta;
     const sinceLastFetch = formatSinceLastFetch(lastFetchAt);
 
     return (
@@ -129,9 +129,9 @@ const Repo: FC<{ path: string; name: string; loadAt: string }> = ({
             alignItems="center"
             flexDirection="row"
           >
-            {commitsBehindMaster ? (
+            {behindMaster ? (
               <Tooltip
-                label={`${name} is ${commitsBehindMaster} commits behind origin/master`}
+                label={`${name} is ${behindMaster} commits behind origin/master`}
                 aria-label="A tooltip"
               >
                 <Box color="orange.500">
@@ -158,10 +158,10 @@ const Repo: FC<{ path: string; name: string; loadAt: string }> = ({
                 }`
               : ""}
           </div>
-          {commitsBehindMaster ? (
+          {behindMaster ? (
             <div>
-              origin/master has {commitsBehindMaster} new commit
-              {commitsBehindMaster > 1 ? "s" : ""}
+              origin/master has {behindMaster} new commit
+              {behindMaster > 1 ? "s" : ""}
             </div>
           ) : null}
           <div>more than {sinceLastFetch} since last fetch</div>

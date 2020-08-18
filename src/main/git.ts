@@ -42,10 +42,10 @@ export async function getCommitsBehindMaster(
   branch: string
 ): Promise<number> {
   const git: SimpleGit = simpleGit(path);
-  const commitsBehindMaster = branch
+  const behindMaster = branch
     ? await git.raw(["cherry", branch, "origin/master"])
     : undefined;
-  return (commitsBehindMaster?.split("\n").length || 1) - 1;
+  return (behindMaster?.split("\n").length || 1) - 1;
 }
 
 export async function getServicesBranches(

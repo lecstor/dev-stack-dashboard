@@ -1,7 +1,7 @@
 import intervalToDuration from "date-fns/intervalToDuration";
 
 export default function formatSinceLastFetch(
-  lastFetchAt?: Date
+  lastFetchAt?: number
 ): string | undefined {
   if (!lastFetchAt) return undefined;
 
