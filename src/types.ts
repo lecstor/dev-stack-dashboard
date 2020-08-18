@@ -29,36 +29,29 @@ export interface GitStatus {
 
 export type ServiceSourceType = "build" | "image" | "mount";
 
-export type ComposeService = {
-  state: ServiceSourceType;
+export type ComposeConfigService = {
+  sourceType?: ServiceSourceType;
   path?: string;
-  build?: {
-    context?: string;
-    dockerfile?: string;
-  };
+  name: string;
+  build?: DockerComposeServiceBuildObject;
   image?: string;
-  volumes?: Array<{
-    type?: string;
-    source?: string;
-    target?: string;
-    volume?: {
-      nocopy: boolean;
-    };
-    read_only?: boolean;
-  }>;
+  volumes?: DockerComposeServiceVolumeObject[];
   container_name?: string;
 };
 
+export type ComposeConfigServices = {
+  [serviceName: string]: ComposeConfigService;
+};
+
 export type ComposeConfig = {
-  services: {
-    [serviceName: string]: ComposeService;
-  };
+  version: string;
+  services: ComposeConfigServices;
 };
 
 export type DevStack = {
   path: string;
   composeConfig: ComposeConfig;
-  dockerPs?: Record<string, DockerPsContainer>;
+  dockerPs?: DockerPs;
 };
 
 export type DirMeta = {
@@ -76,39 +69,44 @@ export type DockerPsContainer = {
   ports: string;
 };
 
-export type DockerComposeVolume =
+export type DockerPs = Record<string, DockerPsContainer>;
+
+export type DockerComposeServiceVolumeObject = {
+  type?: string;
+  source?: string;
+  target?: string;
+  volume?: {
+    nocopy: boolean;
+  };
+  read_only?: boolean;
+};
+
+export type DockerComposeServiceVolume =
   | string
-  | {
-      type?: string;
-      source?: string;
-      target?: string;
-      volume?: {
-        nocopy: boolean;
-      };
-    };
+  | DockerComposeServiceVolumeObject;
+
+export type DockerComposeServiceBuildObject = {
+  context: string;
+  dockerfile?: string;
+  args?: Record<string, string> | string[];
+  cache_from?: string[];
+  labels?: Record<string, string> | string[];
+  network?: string;
+  shm_size?: string;
+  target?: string;
+};
 
 export type DockerComposeService = {
-  image: string;
-  build?:
-    | string
-    | {
-        context: string;
-        dockerfile?: string;
-        args?: Record<string, string> | string[];
-        cache_from?: string[];
-        labels?: Record<string, string> | string[];
-        network?: string;
-        shm_size?: string;
-        target: string;
-      };
-  volumes?: DockerComposeVolume[];
+  image?: string;
+  build?: string | DockerComposeServiceBuildObject;
+  volumes?: DockerComposeServiceVolume[];
   container_name?: string;
 };
 
 export type DockerComposeFile = {
   version: string;
   services: Record<string, DockerComposeService>;
-  networks: Record<string, any>;
+  networks?: Record<string, any>;
   volumes?: Record<string, any>;
   configs?: Record<string, Record<string, string | boolean>>;
 };
@@ -123,7 +121,7 @@ export type RepoDetailMeta = {
   gitStatus?: GitStatus;
   lastFetchAt?: Date;
   files?: DockerComposeFiles;
-  commitsBehindMaster?: number;
+  behindMaster?: number;
 };
 
 export type RepoMeta = {

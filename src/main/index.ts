@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu } from "electron";
+import installExtension, { REDUX_DEVTOOLS } from "electron-devtools-installer";
 
 import { menuTemplate } from "./os-menu-template";
 import { initHandlers } from "./ipcHandlers";
@@ -23,7 +24,7 @@ const createWindow = (): void => {
     },
   });
 
-  initHandlers(mainWindow);
+  initHandlers();
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
@@ -59,6 +60,12 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+app.whenReady().then(() => {
+  installExtension(REDUX_DEVTOOLS)
+    .then((name: string) => console.log(`Added Extension:  ${name}`))
+    .catch((err: Error) => console.log("An error occurred: ", err));
 });
 
 // In this file you can include the rest of your app's specific main process

@@ -8,12 +8,12 @@ import { DockerPsContainer } from "../../../types";
 type Props = {
   name: string;
   path?: string;
-  state: string;
+  sourceType?: string;
   dockerPs?: DockerPsContainer;
 };
 
-const Service: FC<Props> = ({ name, path, state, ...props }) => {
-  switch (state) {
+const Service: FC<Props> = ({ name, path, sourceType, ...props }) => {
+  switch (sourceType) {
     case "build":
       return path ? (
         <Build name={name} path={path} {...props} />
@@ -31,7 +31,7 @@ const Service: FC<Props> = ({ name, path, state, ...props }) => {
     default:
       return (
         <>
-          Unknown state &quot;{state}&quot; for {name}
+          Unknown sourceType &quot;{sourceType}&quot; for {name}
         </>
       );
   }

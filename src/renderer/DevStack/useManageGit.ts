@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
 import useInterval from "../hooks/useInterval";
 import { GitStatus } from "../../types";
 
 import { fetchGitStatus, fetchGitCommitsBehindMaster } from "../ipc";
+
+import {
+  setGitRepoCommitsBehindMaster,
+  setGitRepoStatus,
+} from "../store/gitSlice";
+import {
+  selectGitCommitsBehindMaster,
+  selectGitStatus,
+} from "../store/gitSelectors";
 
 import useManageGitFetch from "./useManageGitFetch";
 
@@ -11,29 +21,33 @@ type Return = {
   branch?: string;
   gitCommitsBehindMaster?: number;
   gitStatus?: GitStatus;
-  lastFetch?: Date;
+  lastFetch?: number;
 };
 
-type Options = { path: string };
+type Options = { name: string; path: string };
 
-const useManageGit = ({ path }: Options): Return => {
-  const [gitStatus, setGitStatus] = useState<GitStatus | undefined>();
-  const [gitCommitsBehindMaster, setGitCommitsBehindMaster] = useState<
-    number | undefined
-  >();
-  const { lastFetch, checkFetch } = useManageGitFetch({ path });
+const useManageGit = ({ name, path }: Options): Return => {
+  const dispatch = useDispatch();
+  const gitStatus = useSelector(selectGitStatus(name));
+  const gitCommitsBehindMaster = useSelector(
+    selectGitCommitsBehindMaster(name)
+  );
+
+  const { lastFetch, checkFetch } = useManageGitFetch({ name, path });
 
   const branch = gitStatus?.current || undefined;
 
   const fetchStatus = () => {
-    fetchGitStatus(path).then((result) => setGitStatus(result));
+    fetchGitStatus(path).then((result) => {
+      dispatch(setGitRepoStatus(result, name));
+    });
   };
 
   const fetchCommitsBehindMaster = () => {
     branch &&
-      fetchGitCommitsBehindMaster(path, branch).then((result) =>
-        setGitCommitsBehindMaster(result)
-      );
+      fetchGitCommitsBehindMaster(path, branch).then((result) => {
+        dispatch(setGitRepoCommitsBehindMaster(result, name));
+      });
   };
 
   useInterval(checkFetch, 30000);

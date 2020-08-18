@@ -28,7 +28,7 @@ const ServiceBuild: FC<Props> = ({ dockerPs, name, path, ...props }) => {
     gitCommitsBehindMaster,
     gitStatus,
     lastFetch,
-  } = useManageGit({ path });
+  } = useManageGit({ name, path });
 
   return (
     <AccordionItem {...props}>

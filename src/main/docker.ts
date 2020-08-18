@@ -8,12 +8,12 @@ import { execCmd } from "./runCmd";
 
 import {
   ComposeConfig,
-  ComposeService,
+  ComposeConfigService,
   DevStack,
   DockerComposeFile,
   DockerComposeFiles,
   DockerComposeService,
-  DockerComposeVolume,
+  DockerComposeServiceVolume,
   DockerPsContainer,
   ServiceSourceType,
 } from "../types";
@@ -106,18 +106,20 @@ const composeProps: Array<keyof DockerComposeService> = [
   "volumes",
 ];
 
-function parseComposeFiles(files: DockerComposeFiles): ComposeConfig {
-  const services: ComposeConfig["services"] = {};
+function createComposeConfig(
+  path: string,
+  files: DockerComposeFiles
+): ComposeConfig {
+  const config: ComposeConfig = { version: "", services: {} };
+
+  const { services } = config;
 
   Object.keys(files).forEach((fileName) => {
     const dcServices = files[fileName].services;
+    config.version = files[fileName].version;
     Object.keys(dcServices).forEach((serviceName: string) => {
       if (!services[serviceName]) {
-        services[serviceName] = {
-          state: "image",
-          build: {},
-          volumes: [],
-        };
+        services[serviceName] = { name: serviceName };
       }
       const dcService = dcServices[serviceName];
       const service = services[serviceName];
@@ -132,7 +134,7 @@ function parseComposeFiles(files: DockerComposeFiles): ComposeConfig {
           } else if (prop === "volumes") {
             if (dcService.volumes) {
               service.volumes = dcService.volumes.map(
-                (volume: DockerComposeVolume) => {
+                (volume: DockerComposeServiceVolume) => {
                   if (typeof volume === "string") {
                     const parts = volume.split(":");
                     if (parts.length === 1) {
@@ -159,13 +161,20 @@ function parseComposeFiles(files: DockerComposeFiles): ComposeConfig {
     });
   });
 
-  return { services };
+  Object.keys(services).forEach((key) => {
+    const service = services[key];
+    const sourceType = getServiceSourceType(service);
+    service.sourceType = sourceType;
+    service.path = getServicePath(path, sourceType, service);
+  });
+
+  return config;
 }
 
 function getServicePath(
   path: string,
   sourceType: string,
-  service: ComposeService
+  service: ComposeConfigService
 ): string | undefined {
   if (["mount", "build"].includes(sourceType)) {
     let repoPath = "";
@@ -176,7 +185,9 @@ function getServicePath(
   }
 }
 
-function getServiceSourceType(service: ComposeService): ServiceSourceType {
+function getServiceSourceType(
+  service: ComposeConfigService
+): ServiceSourceType {
   return service.build?.context
     ? service.volumes?.length
       ? "mount"
@@ -204,19 +215,9 @@ export async function fetchStack(path: string): Promise<DevStack> {
     "docker-compose.yml",
     "docker-compose.override.yml"
   );
-  const composeConfig = parseComposeFiles(composeCfgFiles);
-
-  Object.keys(composeConfig.services).forEach((key) => {
-    const service = composeConfig.services[key];
-    const sourceType = getServiceSourceType(service);
-    composeConfig.services[key] = {
-      ...service,
-      state: sourceType,
-      path: getServicePath(path, sourceType, service),
-    };
-  });
-
+  const composeConfig = createComposeConfig(path, composeCfgFiles);
   const dockerPs = parseContainerList(await listContainers(path), path);
+
   return {
     path,
     composeConfig,
